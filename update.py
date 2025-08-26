@@ -32,7 +32,7 @@ def update():
     AUPR = config("ALWAYS_UPDATE_PY_REQ", default=False, cast=bool)
     UPSTREAM_REPO = config(
         "UPSTREAM_REPO",
-        default="https://github.com/Nubuki-all/Enc")
+        default="https://github.com/tharindu899/Enc")
     UPSTREAM_BRANCH = config("UPSTREAM_BRANCH", default="main")
 
     r_filep = Path("filters/Auto-rename.txt")
