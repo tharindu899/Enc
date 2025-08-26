@@ -8,6 +8,7 @@ from bot.utils.bot_utils import code, decode
 from bot.utils.bot_utils import encode_job as ejob
 from bot.utils.bot_utils import get_codec
 from bot.utils.log_utils import logger
+from bot.utils.ani_utils import add_subtitles
 
 def_enc_msg = "**Currently Encoding {}:**\n└`{}`\n\n{}**⏳This Might Take A While⏳**"
 
@@ -93,3 +94,10 @@ class Encoder:
                 decode(self.log_enc_id, pop=True)
 
         return com
+
+    @staticmethod
+    async def add_subs(in_file, out_file, subtitle_file, mode="embed", ffmpeg_bin="ffmpeg"):
+        """Convenience wrapper to add or burn subtitles using the project's ani_utils helper."""
+        return await add_subtitles(
+            in_file, out_file=out_file, subtitle_file=subtitle_file, mode=mode, ffmpeg_bin=ffmpeg_bin
+        )

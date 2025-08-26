@@ -111,6 +111,26 @@ help - same as start
 ### Features:
 __(Coming Soon)__
 
+### Subtitles helper
+
+This repo includes a small helper to add or burn subtitles using ffmpeg from Python code.
+
+Example usage:
+
+```python
+from bot.workers.encoders.encode import Encoder
+
+# embed (softsubs) into new mkv
+success, out = await Encoder.add_subs('input.mp4', 'output.mkv', 'subs.srt', mode='embed')
+
+# burn subtitles (hardcode)
+success, out = await Encoder.add_subs('input.mp4', 'output.mp4', 'subs.srt', mode='burn')
+```
+
+Notes:
+- `out_file` is required to avoid accidental overwrite.
+- `ffmpeg` must be installed and available in PATH, or pass `ffmpeg_bin` with a full path.
+
 ### Source 
 
 - **[An Heavily Modified Fork of Danish CompressorQueue](https://github.com/1Danish-00/CompressorQueue)**

@@ -1098,3 +1098,74 @@ async def airing_anim(query):
         out += f"**Airing Episode:** `[{episode}/{episodes}]`\n"
         out += f"\n`{air_on}`"
     return coverImg, out
+
+
+async def add_subtitles(
+    in_file,
+    out_file=None,
+    subtitle_file=None,
+    mode="embed",
+    map_streams=True,
+    ffmpeg_bin="ffmpeg",
+):
+    """
+    Add or burn subtitles into a video using ffmpeg.
+
+    Parameters:
+    - in_file: path to input video file
+    - out_file: path to output file. If None, will overwrite input (in-place not supported).
+    - subtitle_file: path to subtitle file (srt/ass/etc). Required for burn or embed.
+    - mode: 'embed' (softsub mux into container) or 'burn' (hardcode subtitles into video)
+    - map_streams: when embedding, copy all streams and add subtitle stream
+    - ffmpeg_bin: ffmpeg executable name or path
+
+    Returns: tuple(success: bool, stdout_or_error: str)
+    """
+    import asyncio
+    import shlex
+
+    if not subtitle_file:
+        return False, "No subtitle file provided"
+
+    if not out_file:
+        return False, "out_file must be provided to avoid accidental overwrite"
+
+    if mode not in ("embed", "burn"):
+        return False, f"Unknown mode: {mode}"
+
+    # Build command
+    if mode == "burn":
+        # Burn subtitles visually using subtitles filter (supports srt/ass)
+        # Use -y to overwrite
+        cmd = (
+            f"{ffmpeg_bin} -hide_banner -loglevel error -i {shlex.quote(in_file)} "
+            f"-vf subtitles={shlex.quote(subtitle_file)} -c:a copy {shlex.quote(out_file)} -y"
+        )
+    else:
+        # Embed subtitle as a soft subtitle stream inside container (use mkv by default)
+        # Copy all streams, add subtitle stream
+        if map_streams:
+            cmd = (
+                f"{ffmpeg_bin} -hide_banner -loglevel error -i {shlex.quote(in_file)} -i {shlex.quote(subtitle_file)} "
+                f"-c copy -c:s srt -map 0 -map 1 {shlex.quote(out_file)} -y"
+            )
+        else:
+            cmd = (
+                f"{ffmpeg_bin} -hide_banner -loglevel error -i {shlex.quote(in_file)} -i {shlex.quote(subtitle_file)} "
+                f"-map 0:v -map 0:a -map 1 -c copy -c:s srt {shlex.quote(out_file)} -y"
+            )
+
+    try:
+        # run command asynchronously
+        proc = await asyncio.create_subprocess_shell(
+            cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        out, _ = await proc.communicate()
+        out = out.decode(errors="ignore") if out else ""
+        if proc.returncode != 0:
+            return False, out
+        return True, out
+    except Exception as e:
+        return False, str(e)
