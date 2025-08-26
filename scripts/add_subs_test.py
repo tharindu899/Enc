@@ -1,7 +1,7 @@
 """Small smoke test for add_subtitles helper.
 
 Usage (PowerShell):
-python .\scripts\add_subs_test.py .\input.mp4 .\subs.srt .\output.mkv embed
+python ./scripts/add_subs_test.py ./input.mp4 ./subs.srt ./output.mkv embed
 
 """
 import asyncio
