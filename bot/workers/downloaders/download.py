@@ -10,6 +10,7 @@ from bot.utils.bot_utils import (
     sync_to_async,
     time_formatter,
     value_check,
+    render_progress_bar,
 )
 from bot.utils.log_utils import log, logger
 from bot.utils.os_utils import parse_dl, s_remove
@@ -268,56 +269,20 @@ class Downloader:
                     if i != s:
                         x += str(i) + "|"
                 x = x.strip("|")
-            (
-                await sync_to_async(
-                    self.qb.torrents_file_priority,
-                    torrent_hash=self.uri_gid,
-                    file_ids=x,
-                    priority=0,
-                )
-                if x
-                else None
-            )
-            await sync_to_async(self.qb.torrents_resume, torrent_hashes=self.uri_gid)
-            while True:
-                download = await self.progress_for_qbit()
-                if not download:
-                    break
-                if download.state in ("pausedUP", "stoppedUP"):
-                    break
-            await self.wait()
-            self.un_register()
-            return download
-
-        except Exception:
-            self.un_register()
-            await logger(Exception)
-            return None
-
-    async def progress_for_pyrogram(self, current, total, app, ud_type, message, start):
-        fin_str = enhearts()
-        now = time.time()
-        diff = now - start
-        if self.is_cancelled:
-            app.stop_transmission()
-        if round(diff % 10.00) == 0 or current == total:
-            percentage = current * 100 / total
-            status = "downloads" + "/status.json"
-            if os.path.exists(status):
-                with open(status, "r+") as f:
-                    statusMsg = json.load(f)
-                    if not statusMsg["running"]:
-                        app.stop_transmission()
+                if x:
+                    await sync_to_async(
+                        self.qb.torrents_file_priority,
+                        torrent_hash=self.uri_gid,
+                        file_ids=x,
+                        priority=0,
+                    )
             elapsed_time = time_formatter(diff)
             speed = current / diff
-            time_to_completion = time_formatter(int((total - current) / speed))
+            time_to_completion = time_formatter(int((total - current) / speed)) if speed > 0 else "0 s"
 
-            progress = "```\n{0}{1}```\n<b>Progress:</b> `{2}%`\n".format(
-                "".join([fin_str for i in range(math.floor(percentage / 10))]),
-                "".join(
-                    [self.unfin_str for i in range(10 - math.floor(percentage / 10))]
-                ),
-                round(percentage, 2),
+            bar = render_progress_bar(percentage, length=18, filled_char="🟦", empty_char="▫")
+            tmp = (
+                f"{bar}\n`{hbs(current)} of {hbs(total)}`\n**Speed:** `{hbs(speed)}/s`\n**ETA:** `{time_to_completion or '0 s'}`\n**Elapsed:** `{elapsed_time or '0 s'}`\n"
             )
 
             tmp = (
@@ -366,6 +331,10 @@ class Downloader:
             except BaseException:
                 await logger(Exception)
                 # debug
+        except Exception:
+            self.un_register()
+            await logger(Exception)
+            return None
 
     async def progress_for_aria2(self, download, start, message, silent=False):
         try:
@@ -416,43 +385,14 @@ class Downloader:
                     )
                 )
 
-            progress = "```\n{0}{1}```\n<b>Progress:</b> `{2}%`\n".format(
-                "".join([fin_str for i in range(math.floor(download.progress / 10))]),
-                "".join(
-                    [
-                        self.unfin_str
-                        for i in range(10 - math.floor(download.progress / 10))
-                    ]
-                ),
-                round(download.progress, 2),
-            )
+            bar = render_progress_bar(download.progress, length=18, filled_char="🟩", empty_char="▫")
             tmp = (
-                progress
-                + "`{0} of {1}`\n**Speed:** `{2}/s`\n**Remains:** `{3}`\n**ETA:** `{4}`\n**Elapsed:** `{5}`\n".format(
-                    value_check(hbs(current)),
-                    value_check(hbs(total)),
-                    value_check(hbs(speed)),
-                    value_check(hbs(remaining_size)),
-                    # elapsed_time if elapsed_time != '' else "0 s",
-                    # download.eta if len(str(download.eta)) < 30 else "0 s",
-                    time_to_completion if time_to_completion else "0 s",
-                    time_formatter(diff),
-                )
+                f"{bar}\n`{value_check(hbs(current))} of {value_check(hbs(total))}`\n**Speed:** `{value_check(hbs(speed))}/s`\n**Remains:** `{value_check(hbs(remaining_size))}`\n**ETA:** `{time_to_completion or '0 s'}`\n**Elapsed:** `{time_formatter(diff)}`\n"
             )
-            if silent:
-                await asyncio.sleep(10)
-                return
             try:
-                # Attach the button to the message with an inline keyboard
                 reply_markup = []
-                # file_name = self.file_name.split("/")[-1]
                 dl_info = await parse_dl(self.file_name)
-                (
-                    info_button,
-                    more_button,
-                    back_button,
-                    cancel_button,
-                ) = self.gen_buttons()
+                info_button, more_button, back_button, cancel_button = self.gen_buttons()
                 if not self.dl_info:
                     reply_markup.append([cancel_button])
                     dsp = "{}\n{}".format(ud_type, tmp)
@@ -531,23 +471,9 @@ class Downloader:
                 download = None
                 return await self.download_timeout()
 
-            progress = "```\n{0}{1}```\n<b>Progress:</b> `{2}%`\n".format(
-                "".join([fin_str for i in range(math.floor(d_progress / 10))]),
-                "".join(
-                    [self.unfin_str for i in range(10 - math.floor(d_progress / 10))]
-                ),
-                round(d_progress, 2),
-            )
+            bar = render_progress_bar(d_progress, length=18, filled_char="🟧", empty_char="▫")
             tmp = (
-                progress
-                + "`{0} of {1}`\n**Speed:** `{2}/s`\n**Remains:** `{3}`\n**ETA:** `{4}`\n**Elapsed:** `{5}`\n".format(
-                    value_check(hbs(current)),
-                    value_check(hbs(total)),
-                    value_check(hbs(speed)),
-                    value_check(hbs(remaining)),
-                    time_formatter(time_to_completion) if time_to_completion else "0 s",
-                    time_formatter(diff),
-                )
+                f"{bar}\n`{value_check(hbs(current))} of {value_check(hbs(total))}`\n**Speed:** `{value_check(hbs(speed))}/s`\n**Remains:** `{value_check(hbs(remaining))}`\n**ETA:** `{time_formatter(time_to_completion) if time_to_completion else '0 s'}`\n**Elapsed:** `{time_formatter(diff)}`\n"
             )
             try:
                 # Attach the button to the message with an inline keyboard

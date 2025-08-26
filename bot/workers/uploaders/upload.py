@@ -1,7 +1,7 @@
 from bot import *
 from bot.config import conf
 from bot.fun.emojis import enhearts, enmoji, enmoji2
-from bot.utils.bot_utils import code, decode, hbs, time_formatter
+from bot.utils.bot_utils import code, decode, hbs, time_formatter, render_progress_bar
 from bot.utils.log_utils import logger
 from bot.utils.os_utils import file_exists, get_video_thumbnail
 
@@ -52,22 +52,7 @@ class Uploader:
                         fm,
                     ),
                 )
-            decode(self.id, pop=True)
-            return s
-        except pyro_errors.BadRequest:
-            await reply.edit(f"`Failed {enmoji2()}\nRetrying in 10 seconds…`")
-            await asyncio.sleep(10)
-            s = await self.start(from_user_id, filepath, reply, thum, caption, message)
-            return s
-
-        except pyro_errors.FloodWait as e:
-            await asyncio.sleep(e.value)
-            await reply.edit(
-                f"`Failed: FloodWait error {enmoji2()}\nRetrying in 10 seconds…`"
-            )
-            await asyncio.sleep(10)
-            s = await self.start(from_user_id, filepath, reply, thum, caption, message)
-            return s
+                return s
 
         except Exception:
             decode(self.id, pop=True)

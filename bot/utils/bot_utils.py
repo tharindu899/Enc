@@ -766,3 +766,28 @@ async def sync_to_async(func, *args, wait=True, **kwargs):
     loop = asyncio.get_event_loop()
     future = loop.run_in_executor(THREADPOOL, pfunc)
     return await future if wait else future
+
+
+def render_progress_bar(
+    percentage: float,
+    length: int = 16,
+    filled_char: str = "█",
+    empty_char: str = "░",
+    show_percentage: bool = True,
+    prefix: str = "",
+    suffix: str = "",
+):
+    """Render a compact, emoji-friendly progress bar suitable for Telegram messages.
+
+    Example output: "[█████░░░░░░░░] 31% | 00:12:34 ETA"
+    """
+    try:
+        pct = max(0.0, min(100.0, float(percentage)))
+    except Exception:
+        pct = 0.0
+    filled_len = int(round(length * (pct / 100.0)))
+    bar = filled_char * filled_len + empty_char * (length - filled_len)
+    out = f"{prefix}[{bar}]{suffix}"
+    if show_percentage:
+        out += f" {round(pct, 2)}%"
+    return out

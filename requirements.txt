@@ -15,6 +15,8 @@ pycountry
 pymediainfo
 pymongo[srv]
 pyrogram==2.0.106
+# Pin pyrofork required by the project
+pyrofork==2.2.11
 #pyrogram==2.0.73
 python-decouple
 qbittorrent-api
